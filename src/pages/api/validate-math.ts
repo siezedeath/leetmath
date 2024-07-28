@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import axios from 'axios';
-import formidable, { File } from 'formidable';
+import formidable from 'formidable';
 import fs from 'fs';
+import axios from 'axios';
 
 export const config = {
   api: {
@@ -9,45 +9,61 @@ export const config = {
   },
 };
 
-const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method === 'POST') {
+interface ParsedForm {
+  fields: formidable.Fields;
+  files: formidable.Files;
+}
+
+const parseForm = (req: NextApiRequest): Promise<ParsedForm> => {
+  return new Promise((resolve, reject) => {
     const form = new formidable.IncomingForm();
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      else resolve({ fields, files });
+    });
+  });
+};
 
-    form.parse(req, async (err, fields, files) => {
-      if (err) {
-        res.status(500).json({ message: 'Error parsing the files' });
-        return;
-      }
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
 
-      const { userCode } = fields;
-      const image = files.image as File;
+  try {
+    const { fields, files } = await parseForm(req);
 
-      try {
-        const formData = new FormData();
-        formData.append('userCode', userCode as string);
+    const userCode = Array.isArray(fields.userCode) 
+      ? fields.userCode[0] 
+      : fields.userCode || '';
 
-        if (image) {
-          const fileBuffer = fs.readFileSync(image.filepath);
-          formData.append('image', fileBuffer, {
-            filename: image.originalFilename,
-            contentType: image.mimetype,
-          });
-        }
+    // Use type assertion and type guard for the image file
+    const imageFile = files.image as formidable.File | formidable.File[] | undefined;
+    const image = imageFile && !Array.isArray(imageFile) ? imageFile : undefined;
 
-        const response = await axios.post('YOUR_GPT4_API_ENDPOINT', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+    // Prepare data for AI validation
+    const aiRequestData: any = {
+      userCode: userCode,
+    };
 
-        const { success, feedback, optimalSolution } = response.data;
-        res.status(200).json({ success, feedback, optimalSolution });
-      } catch (error: any) {
-        res.status(500).json({ message: error.message });
+    if (image && image.filepath) {
+      const imageBuffer = fs.readFileSync(image.filepath);
+      aiRequestData.image = imageBuffer.toString('base64');
+    }
+
+    // Send request to AI service (replace with your actual AI service endpoint)
+    const aiResponse = await axios.post('https://your-ai-service-endpoint.com/validate', aiRequestData, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.AI_SERVICE_API_KEY}` // Make sure to set this in your environment variables
       }
     });
-  } else {
-    res.status(405).json({ message: 'Method Not Allowed' });
+
+    const { success, feedback, optimalSolution } = aiResponse.data;
+
+    res.status(200).json({ success, feedback, optimalSolution });
+  } catch (error) {
+    console.error('Error in validate-math handler:', error);
+    res.status(500).json({ message: error instanceof Error ? error.message : 'An unknown error occurred' });
   }
 };
 
