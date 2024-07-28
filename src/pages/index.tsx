@@ -23,14 +23,14 @@ export default function Home() {
 				<div className='relative overflow-x-auto mx-auto px-6 pb-10'>
 					{loadingProblems && (
 						<div className='max-w-[1200px] mx-auto sm:w-7/12 w-full animate-pulse'>
-							{[...Array(10)].map((_, idx) => (
+							{/* {[...Array(10)].map((_, idx) => (
 								<LoadingSkeleton key={idx} />
-							))}
+							))} */}
 						</div>
 					)}
 					<table className='text-sm text-left text-black-500 dark:text-black-400 sm:w-7/12 w-full max-w-[1200px] mx-auto'>
 						{!loadingProblems && (
-							<thead className='text-xs text-black-700 uppercase dark:text-black-400 border-b '>
+							<thead className='text-xs text-black-700 uppercase dark:text-black-400 border-b'>
 								<tr>
 									<th scope='col' className='px-1 py-3 w-0 font-medium'>
 										Status
@@ -41,7 +41,6 @@ export default function Home() {
 									<th scope='col' className='px-6 py-3 w-0 font-medium'>
 										Difficulty
 									</th>
-
 									<th scope='col' className='px-6 py-3 w-0 font-medium'>
 										Category
 									</th>
@@ -51,7 +50,7 @@ export default function Home() {
 								</tr>
 							</thead>
 						)}
-						<ProblemsTable setLoadingProblems={setLoadingProblems} />
+						<ProblemsTable />
 					</table>
 				</div>
 			</main>
