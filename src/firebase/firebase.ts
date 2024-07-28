@@ -2,7 +2,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -15,16 +14,11 @@ const firebaseConfig = {
   storageBucket: "leetmath-2470f.appspot.com",
   messagingSenderId: "700808609923",
   appId: "1:700808609923:web:a6a22cb4eeecec16671bb6",
-  measurementId: "G-5T9TBFEMGT"
 };
 
 // Initialize Firebase
-const app =!getApps.length ? initializeApp(firebaseConfig) : getApp();
+const app = !getApps.length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
-const firestore = getFirestore(app);
-
 const analytics = getAnalytics(app);
-
-export { auth, firestore, app };
-
+export { auth, firestore, app};
