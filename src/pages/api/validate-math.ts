@@ -92,7 +92,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const followUpResponse = await axios.post('https://api.openai.com/v1/chat/completions', {
       model: "gpt-4-vision-preview",
       messages: followUpMessages,
-      max_tokens: 300
+      max_tokens: 1000
     }, {
       headers: {
         'Content-Type': 'application/json',
