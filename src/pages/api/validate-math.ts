@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
-import formidable from 'formidable';
+import formidable, { File } from 'formidable';
 import fs from 'fs';
-import FormData from 'form-data';
 
 export const config = {
   api: {
@@ -21,27 +20,27 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       }
 
       const { userCode } = fields;
-      const image = files.image;
+      const image = files.image as File;
 
       try {
         const formData = new FormData();
         formData.append('userCode', userCode as string);
+
         if (image) {
-          const file = fs.readFileSync(image.filepath);
-          formData.append('image', file, {
+          const fileBuffer = fs.readFileSync(image.filepath);
+          formData.append('image', fileBuffer, {
             filename: image.originalFilename,
             contentType: image.mimetype,
           });
         }
 
-        const gpt4Response = await axios.post('YOUR_GPT4_API_ENDPOINT', formData, {
+        const response = await axios.post('YOUR_GPT4_API_ENDPOINT', formData, {
           headers: {
-            ...formData.getHeaders(),
+            'Content-Type': 'multipart/form-data',
           },
         });
 
-        const { success, feedback, optimalSolution } = gpt4Response.data;
-
+        const { success, feedback, optimalSolution } = response.data;
         res.status(200).json({ success, feedback, optimalSolution });
       } catch (error: any) {
         res.status(500).json({ message: error.message });
