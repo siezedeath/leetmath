@@ -23,10 +23,14 @@ interface Message {
 
 const parseForm = (req: NextApiRequest): Promise<ParsedForm> => {
   return new Promise((resolve, reject) => {
-    const form = new formidable.IncomingForm();
+    const form = formidable();
     form.parse(req, (err, fields, files) => {
-      if (err) reject(err);
-      else resolve({ fields, files });
+      if (err) {
+        console.error('Error parsing form:', err);
+        reject(err);
+      } else {
+        resolve({ fields, files });
+      }
     });
   });
 };
@@ -39,8 +43,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { fields, files } = await parseForm(req);
 
-    const userCode = Array.isArray(fields.userCode) 
-      ? fields.userCode[0] 
+    const userCode = Array.isArray(fields.userCode)
+      ? fields.userCode[0]
       : fields.userCode || '';
 
     // Use type assertion and type guard for the image file
@@ -49,8 +53,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // Prepare messages for GPT-4 Vision
     const messages: Message[] = [
-      { role: "system", content: "You are a helpful assistant that validates mathematical solutions and provides feedback. If an image is provided, analyze it in context of the solution." },
-      { role: "user", content: `Please validate the following mathematical solution and provide feedback:\n\n${userCode}` }
+      { role: 'system', content: 'You are a helpful assistant that validates mathematical solutions and provides feedback. If an image is provided, analyze it in context of the solution.' },
+      { role: 'user', content: `Please validate the following mathematical solution and provide feedback:\n\n${userCode}` }
     ];
 
     // If there's an image, add it to the messages
@@ -58,17 +62,17 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       const imageBuffer = fs.readFileSync(image.filepath);
       const base64Image = imageBuffer.toString('base64');
       messages.push({
-        role: "user",
+        role: 'user',
         content: [
-          { type: "text", text: "Here's an image related to the solution:" },
-          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+          { type: 'text', text: "Here's an image related to the solution:" },
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
         ]
       });
     }
 
     // Send request to GPT-4 Vision
     const gpt4Response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-4-vision-preview",
+      model: 'gpt-4-vision-preview',
       messages: messages,
       max_tokens: 2000
     }, {
@@ -84,13 +88,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     // Prepare a follow-up message to get the optimal solution
     const followUpMessages: Message[] = [
       ...messages,
-      { role: "assistant", content: gpt4Message },
-      { role: "user", content: "Can you also provide the optimal solution for this problem?" }
+      { role: 'assistant', content: gpt4Message },
+      { role: 'user', content: 'Can you also provide the optimal solution for this problem?' }
     ];
 
     // Send follow-up request to GPT-4 Vision
     const followUpResponse = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-4-vision-preview",
+      model: 'gpt-4-vision-preview',
       messages: followUpMessages,
       max_tokens: 1000
     }, {
@@ -104,7 +108,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const followUpMessage = followUpResponse.data.choices[0].message.content;
 
     // Determine success and feedback
-    const success = gpt4Message.toLowerCase().includes("correct") || gpt4Message.toLowerCase().includes("well done");
+    const success = gpt4Message.toLowerCase().includes('correct') || gpt4Message.toLowerCase().includes('well done');
     const feedback = gpt4Message;
     const optimalSolution = followUpMessage;
 
